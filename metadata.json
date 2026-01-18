@@ -1,0 +1,8 @@
+{
+  "name": "Copy of Bano Qabil Job Hub",
+  "description": "A comprehensive job portal for the Bano Qabil youth empowerment initiative, featuring AI-powered job matching and resume assistance using Gemini 3.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
