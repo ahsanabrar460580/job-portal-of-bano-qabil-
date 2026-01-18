@@ -50,11 +50,38 @@ export interface Company {
 
 export interface Interaction {
   id: string;
-  type: 'APPLICATION' | 'HIRING';
+  type: 'APPLICATION' | 'HIRING' | 'LOGIN' | 'MESSAGE';
+  fromId: string;
   fromName: string;
-  toName: string;
-  itemName: string; // Job title or Student Course
+  toId?: string;
+  toName?: string;
+  itemName: string; 
   timestamp: string;
+}
+
+export interface Notification {
+  id: string;
+  recipientId: string;
+  senderName: string;
+  message: string;
+  type: 'HIRE_OFFER' | 'APPLICATION_ALERT' | 'NEW_MESSAGE';
+  timestamp: string;
+  isRead: boolean;
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: string;
+}
+
+export interface ChatThread {
+  id: string;
+  participants: { id: string, name: string, role: UserRole }[];
+  lastMessage: string;
+  messages: Message[];
 }
 
 export enum ViewState {
@@ -66,5 +93,6 @@ export enum ViewState {
   DASHBOARD = 'DASHBOARD',
   ADMIN = 'ADMIN',
   COMPANY_PORTAL = 'COMPANY_PORTAL',
-  STUDENT_CV = 'STUDENT_CV'
+  STUDENT_CV = 'STUDENT_CV',
+  MESSAGES = 'MESSAGES'
 }

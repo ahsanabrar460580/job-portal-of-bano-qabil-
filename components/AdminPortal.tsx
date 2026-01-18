@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Users, Building2, PlusCircle, LayoutDashboard, Search, Trash2, CheckCircle2, Activity, Send, FileText } from 'lucide-react';
+import { Users, Building2, PlusCircle, LayoutDashboard, Search, Trash2, CheckCircle2, Activity, Send, FileText, Monitor, Globe } from 'lucide-react';
 import { Student, Company, Job, Interaction } from '../types';
 
 interface AdminPortalProps {
@@ -71,6 +71,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     showToast('Internship suggestion posted!');
   };
 
+  // Derived: Active Sessions (Login interactions from the last 10 minutes)
+  const activeSessions = interactions.filter(i => i.type === 'LOGIN');
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {successMsg && (
@@ -86,31 +89,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             onClick={() => setActiveTab('overview')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'overview' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
           >
-            <LayoutDashboard size={20} /> Overview
+            <LayoutDashboard size={20} /> Dashboard
           </button>
           <button 
             onClick={() => setActiveTab('activity')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'activity' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
           >
-            <Activity size={20} /> Platform Activity
+            <Activity size={20} /> Interaction Logs
           </button>
           <button 
             onClick={() => setActiveTab('students')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'students' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
           >
-            <Users size={20} /> Manage Students
+            <Users size={20} /> Students
           </button>
           <button 
             onClick={() => setActiveTab('companies')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'companies' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
           >
-            <Building2 size={20} /> Manage Companies
-          </button>
-          <button 
-            onClick={() => setActiveTab('jobs')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'jobs' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
-          >
-            <PlusCircle size={20} /> Post Internship
+            <Building2 size={20} /> Companies
           </button>
         </aside>
 
@@ -118,41 +115,75 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         <main className="flex-1 bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 min-h-[600px]">
           {activeTab === 'overview' && (
             <div className="space-y-8">
-              <h2 className="text-2xl font-black text-gray-900">Admin Dashboard</h2>
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-black text-gray-900 leading-none">Admin Control Center</h2>
+                <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-emerald-100">
+                  <Monitor size={14} /> Systems Online
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100">
                   <p className="text-emerald-600 text-xs font-black uppercase tracking-wider mb-2">Total Students</p>
                   <p className="text-4xl font-black text-emerald-900">{students.length}</p>
                 </div>
                 <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                  <p className="text-blue-600 text-xs font-black uppercase tracking-wider mb-2">Partner Companies</p>
+                  <p className="text-blue-600 text-xs font-black uppercase tracking-wider mb-2">Partners</p>
                   <p className="text-4xl font-black text-blue-900">{companies.length}</p>
                 </div>
                 <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100">
-                  <p className="text-amber-600 text-xs font-black uppercase tracking-wider mb-2">Active Listings</p>
-                  <p className="text-4xl font-black text-amber-900">{jobs.length}</p>
+                  <p className="text-amber-600 text-xs font-black uppercase tracking-wider mb-2">Live Entries</p>
+                  <p className="text-4xl font-black text-amber-900">{activeSessions.length}</p>
                 </div>
               </div>
               
-              <div className="pt-4">
-                <h3 className="text-lg font-black mb-4 flex items-center gap-2"><Activity size={20} className="text-emerald-600" /> Recent Interactions</h3>
-                <div className="space-y-3">
-                  {interactions.slice(0, 5).map(i => (
-                    <div key={i.id} className="p-4 bg-gray-50 rounded-2xl border flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${i.type === 'APPLICATION' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                          {i.type === 'APPLICATION' ? <FileText size={18} /> : <Send size={18} />}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Active Students (Sessions) */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                    <Globe size={20} className="text-emerald-600" /> Active on Portal
+                  </h3>
+                  <div className="space-y-3">
+                    {activeSessions.length > 0 ? activeSessions.map(session => (
+                      <div key={session.id} className="p-4 bg-gray-50 border rounded-2xl flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-emerald-600 text-white rounded-lg flex items-center justify-center font-black text-xs">
+                            {session.fromName[0]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">{session.fromName}</p>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Logged in at {session.timestamp.split(',')[1]}</p>
+                          </div>
                         </div>
-                        <div>
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      </div>
+                    )) : (
+                       <p className="text-gray-400 text-sm italic py-4">No active users logged right now.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Interactions Activity */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                    <Activity size={20} className="text-emerald-600" /> Platform Interactions
+                  </h3>
+                  <div className="space-y-3">
+                    {interactions.filter(i => i.type !== 'LOGIN').slice(0, 5).map(i => (
+                      <div key={i.id} className="p-4 bg-gray-50 border rounded-2xl flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${i.type === 'APPLICATION' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                          {i.type === 'APPLICATION' ? <FileText size={16} /> : <Send size={16} />}
+                        </div>
+                        <div className="text-xs">
                           <p className="font-bold text-gray-900">
                             {i.fromName} {i.type === 'APPLICATION' ? 'applied to' : 'hired'} {i.toName}
                           </p>
-                          <p className="text-xs text-gray-500">{i.itemName} • {i.timestamp}</p>
+                          <p className="text-gray-500">{i.itemName} • {i.timestamp}</p>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  {interactions.length === 0 && <p className="text-gray-400 italic py-8 text-center">No recent interactions logged.</p>}
+                    ))}
+                    {interactions.length === 0 && <p className="text-gray-400 text-sm italic py-4">No hiring or application events yet.</p>}
+                  </div>
                 </div>
               </div>
             </div>
@@ -160,40 +191,33 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
           {activeTab === 'activity' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-black text-gray-900">Interaction Log</h2>
-                <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold uppercase">{interactions.length} Actions</span>
-              </div>
-              <div className="overflow-hidden border rounded-2xl">
+              <h2 className="text-2xl font-black text-gray-900">Comprehensive Logs</h2>
+              <div className="border rounded-2xl overflow-hidden">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="px-6 py-4 font-black text-gray-600 uppercase text-[10px] tracking-widest">Type</th>
-                      <th className="px-6 py-4 font-black text-gray-600 uppercase text-[10px] tracking-widest">From</th>
-                      <th className="px-6 py-4 font-black text-gray-600 uppercase text-[10px] tracking-widest">To</th>
-                      <th className="px-6 py-4 font-black text-gray-600 uppercase text-[10px] tracking-widest">Item</th>
-                      <th className="px-6 py-4 font-black text-gray-600 uppercase text-[10px] tracking-widest">Date</th>
+                      <th className="px-6 py-4 font-black uppercase text-[10px] text-gray-500 tracking-widest">Type</th>
+                      <th className="px-6 py-4 font-black uppercase text-[10px] text-gray-500 tracking-widest">Actor</th>
+                      <th className="px-6 py-4 font-black uppercase text-[10px] text-gray-500 tracking-widest">Details</th>
+                      <th className="px-6 py-4 font-black uppercase text-[10px] text-gray-500 tracking-widest">Timestamp</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {interactions.map(i => (
-                      <tr key={i.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={i.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${i.type === 'APPLICATION' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                          <span className={`text-[10px] font-black uppercase px-2 py-1 rounded ${
+                            i.type === 'LOGIN' ? 'bg-gray-100 text-gray-600' :
+                            i.type === 'APPLICATION' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'
+                          }`}>
                             {i.type}
                           </span>
                         </td>
                         <td className="px-6 py-4 font-bold text-gray-900">{i.fromName}</td>
-                        <td className="px-6 py-4 font-bold text-gray-900">{i.toName}</td>
-                        <td className="px-6 py-4 text-gray-500">{i.itemName}</td>
-                        <td className="px-6 py-4 text-xs text-gray-400">{i.timestamp}</td>
+                        <td className="px-6 py-4 text-gray-500">{i.itemName} {i.toName ? `(${i.toName})` : ''}</td>
+                        <td className="px-6 py-4 text-gray-400 text-xs">{i.timestamp}</td>
                       </tr>
                     ))}
-                    {interactions.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-20 text-center text-gray-400 italic">No activity recorded yet.</td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>
@@ -201,72 +225,50 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           )}
 
           {activeTab === 'students' && (
-            <div className="space-y-8">
-              <h2 className="text-2xl font-black text-gray-900">Student Directory</h2>
-              <form onSubmit={handleAddStudent} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Full Name</label>
-                  <input required value={newStudent.name} onChange={e => setNewStudent({...newStudent, name: e.target.value})} className="w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Ali Ahmed" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Email</label>
-                  <input required type="email" value={newStudent.email} onChange={e => setNewStudent({...newStudent, email: e.target.value})} className="w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ali@example.com" />
-                </div>
-                <button type="submit" className="md:col-span-2 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors mt-2">
-                  Enroll Student
-                </button>
-              </form>
-              <div className="space-y-3">
-                {students.map(s => (
-                  <div key={s.id} className="flex justify-between items-center p-4 border rounded-2xl hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 font-black">
-                        {s.name[0]}
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-900">{s.name}</p>
-                        <p className="text-xs text-gray-500">{s.course}</p>
-                      </div>
-                    </div>
-                    <button className="p-2 text-gray-300 hover:text-red-500"><Trash2 size={18} /></button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ... other tabs like companies and jobs ... */}
-          {activeTab === 'companies' && (
              <div className="space-y-8">
-               <h2 className="text-2xl font-black text-gray-900">Manage Companies</h2>
-               <form onSubmit={handleAddCompany} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                 <input required value={newCompany.name} onChange={e => setNewCompany({...newCompany, name: e.target.value})} className="w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Company Name" />
-                 <input required value={newCompany.industry} onChange={e => setNewCompany({...newCompany, industry: e.target.value})} className="w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Industry" />
-                 <button type="submit" className="md:col-span-2 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700">Add Partner</button>
+               <h2 className="text-2xl font-black text-gray-900">Manage Students</h2>
+               <form onSubmit={handleAddStudent} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                 <input required value={newStudent.name} onChange={e => setNewStudent({...newStudent, name: e.target.value})} className="p-3 border rounded-xl" placeholder="Full Name" />
+                 <input required type="email" value={newStudent.email} onChange={e => setNewStudent({...newStudent, email: e.target.value})} className="p-3 border rounded-xl" placeholder="Email" />
+                 <button className="bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 md:col-span-2">Add Student</button>
                </form>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 {companies.map(c => (
-                   <div key={c.id} className="flex items-center justify-between p-4 border rounded-2xl">
-                     <div className="flex items-center gap-4">
-                       <img src={c.logo} className="w-10 h-10 rounded-lg" />
-                       <p className="font-bold">{c.name}</p>
+               <div className="grid grid-cols-1 gap-2">
+                 {students.map(s => (
+                   <div key={s.id} className="p-4 border rounded-2xl flex justify-between items-center hover:bg-gray-50">
+                     <div>
+                       <p className="font-bold text-gray-900">{s.name}</p>
+                       <p className="text-xs text-gray-500">{s.course}</p>
                      </div>
-                     <button className="text-gray-300 hover:text-red-500"><Trash2 size={18} /></button>
+                     <button className="text-red-400 hover:text-red-600"><Trash2 size={18} /></button>
                    </div>
                  ))}
                </div>
              </div>
           )}
 
-          {activeTab === 'jobs' && (
-            <div className="space-y-8">
-              <h2 className="text-2xl font-black text-gray-900">Post Internship</h2>
-              <form onSubmit={handleAddJob} className="space-y-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                <input required value={newJob.title} onChange={e => setNewJob({...newJob, title: e.target.value})} className="w-full p-3 rounded-xl border outline-none" placeholder="Job Title" />
-                <textarea required value={newJob.description} onChange={e => setNewJob({...newJob, description: e.target.value})} className="w-full p-3 rounded-xl border outline-none h-24" placeholder="Description" />
-                <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold">Post Listing</button>
-              </form>
-            </div>
+          {activeTab === 'companies' && (
+             <div className="space-y-8">
+               <h2 className="text-2xl font-black text-gray-900">Manage Companies</h2>
+               <form onSubmit={handleAddCompany} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                 <input required value={newCompany.name} onChange={e => setNewCompany({...newCompany, name: e.target.value})} className="p-3 border rounded-xl" placeholder="Company Name" />
+                 <input required value={newCompany.industry} onChange={e => setNewCompany({...newCompany, industry: e.target.value})} className="p-3 border rounded-xl" placeholder="Industry" />
+                 <button className="bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 md:col-span-2">Register Company</button>
+               </form>
+               <div className="grid grid-cols-1 gap-2">
+                 {companies.map(c => (
+                   <div key={c.id} className="p-4 border rounded-2xl flex justify-between items-center hover:bg-gray-50">
+                     <div className="flex items-center gap-3">
+                       <img src={c.logo} className="w-8 h-8 rounded-lg" />
+                       <div>
+                         <p className="font-bold text-gray-900">{c.name}</p>
+                         <p className="text-xs text-gray-500">{c.industry}</p>
+                       </div>
+                     </div>
+                     <button className="text-red-400 hover:text-red-600"><Trash2 size={18} /></button>
+                   </div>
+                 ))}
+               </div>
+             </div>
           )}
         </main>
       </div>
