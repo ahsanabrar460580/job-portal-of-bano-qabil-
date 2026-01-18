@@ -1,116 +1,207 @@
 
 import React, { useState, useMemo } from 'react';
-// Added missing DollarSign import
-import { Search, MapPin, Filter, User, Bell, LayoutDashboard, Briefcase, Sparkles, LogOut, ChevronRight, DollarSign } from 'lucide-react';
-import { MOCK_JOBS, JOB_CATEGORIES } from './constants';
-import { Job, ViewState } from './types';
+import { Search, MapPin, Filter, User, Bell, LayoutDashboard, Briefcase, Sparkles, LogOut, ChevronRight, DollarSign, Settings, Building2, Users, FileText, CheckCircle2 } from 'lucide-react';
+import { MOCK_JOBS, JOB_CATEGORIES, MOCK_STUDENTS, MOCK_COMPANIES } from './constants';
+import { Job, ViewState, Student, Company, UserRole, Interaction } from './types';
 import { JobCard } from './components/JobCard';
 import { AIModal } from './components/AIModal';
+import { AdminPortal } from './components/AdminPortal';
+import { LoginPage } from './components/LoginPage';
+import { StudentDirectory } from './components/StudentDirectory';
+import { StudentProfileForm, CompanyProfileForm } from './components/ProfileSetupForms';
+import { StudentCV } from './components/StudentCV';
 
 export default function App() {
-  const [view, setView] = useState<ViewState>(ViewState.HOME);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>('STUDENT');
+  const [view, setView] = useState<ViewState>(ViewState.LOGIN);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
-  // User State Mock
-  const [userSkills] = useState(['Python', 'JavaScript', 'SQL']);
+  // Global State
+  const [jobs, setJobs] = useState<Job[]>(MOCK_JOBS);
+  const [students, setStudents] = useState<Student[]>(MOCK_STUDENTS);
+  const [companies, setCompanies] = useState<Company[]>(MOCK_COMPANIES);
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
+
+  // User Identity State
+  const [currentUserProfile, setCurrentUserProfile] = useState<Student | Company | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const filteredJobs = useMemo(() => {
-    return MOCK_JOBS.filter(job => {
+    return jobs.filter(job => {
       const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             job.company.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === 'All' || job.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchTerm, selectedCategory]);
+  }, [searchTerm, selectedCategory, jobs]);
 
   const handleJobClick = (job: Job) => {
     setSelectedJob(job);
     setView(ViewState.JOB_DETAILS);
   };
 
+  const handleLogin = (role: UserRole) => {
+    setIsLoggedIn(true);
+    setUserRole(role);
+    if (role === 'ADMIN') {
+      setView(ViewState.ADMIN);
+    } else {
+      setView(ViewState.PROFILE_SETUP);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserRole('STUDENT');
+    setCurrentUserProfile(null);
+    setView(ViewState.LOGIN);
+  };
+
+  const onProfileComplete = (data: any) => {
+    setCurrentUserProfile(data);
+    if (userRole === 'STUDENT') {
+      setStudents(prev => [...prev, data]);
+      setView(ViewState.HOME);
+    } else if (userRole === 'COMPANY') {
+      setCompanies(prev => [...prev, data]);
+      setView(ViewState.COMPANY_PORTAL);
+    }
+  };
+
+  const handleApply = (job: Job) => {
+    if (!currentUserProfile) return;
+    const newInteraction: Interaction = {
+      id: Date.now().toString(),
+      type: 'APPLICATION',
+      fromName: currentUserProfile.name,
+      toName: job.company,
+      itemName: job.title,
+      timestamp: new Date().toLocaleString()
+    };
+    setInteractions([newInteraction, ...interactions]);
+    showToast(`Application email sent to ${job.company}!`);
+  };
+
+  const handleHire = (student: Student) => {
+    if (!currentUserProfile) return;
+    const newInteraction: Interaction = {
+      id: Date.now().toString(),
+      type: 'HIRING',
+      fromName: currentUserProfile.name,
+      toName: student.name,
+      itemName: student.course,
+      timestamp: new Date().toLocaleString()
+    };
+    setInteractions([newInteraction, ...interactions]);
+    showToast(`Hiring invitation email sent to ${student.name}!`);
+  };
+
+  const addStudent = (s: Student) => setStudents([s, ...students]);
+  const addCompany = (c: Company) => setCompanies([c, ...companies]);
+  const addJob = (j: Job) => setJobs([j, ...jobs]);
+
+  const handleViewCV = (student: Student) => {
+    setSelectedStudent(student);
+    setView(ViewState.STUDENT_CV);
+  };
+
+  const renderContent = () => {
+    if (!isLoggedIn) return <LoginPage onLogin={handleLogin} />;
+
+    switch (view) {
+      case ViewState.PROFILE_SETUP:
+        return userRole === 'STUDENT' ? 
+          <div className="py-12 px-4"><StudentProfileForm onComplete={onProfileComplete} /></div> : 
+          <div className="py-12 px-4"><CompanyProfileForm onComplete={onProfileComplete} /></div>;
+      case ViewState.ADMIN:
+        return (
+          <AdminPortal 
+            students={students} 
+            companies={companies} 
+            jobs={jobs}
+            interactions={interactions}
+            onAddStudent={addStudent}
+            onAddCompany={addCompany}
+            onAddJob={addJob}
+          />
+        );
+      case ViewState.COMPANY_PORTAL:
+        return <StudentDirectory students={students} onViewCV={handleViewCV} onHire={handleHire} />;
+      case ViewState.JOB_DETAILS:
+        return renderJobDetails();
+      case ViewState.STUDENT_CV:
+        return <StudentCV student={selectedStudent!} onBack={() => setView(userRole === 'COMPANY' ? ViewState.COMPANY_PORTAL : ViewState.HOME)} />;
+      default:
+        return renderHome();
+    }
+  };
+
   const renderHome = () => (
     <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
-      {/* Sidebar Filters */}
       <aside className="w-full md:w-64 space-y-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Filter size={18} /> Filters
           </h3>
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Category</p>
-            <button 
-              onClick={() => setSelectedCategory('All')}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === 'All' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              All Jobs
-            </button>
-            {JOB_CATEGORIES.map(cat => (
+            {['All', ...JOB_CATEGORIES].map(cat => (
               <button 
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === cat ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors ${selectedCategory === cat ? 'bg-emerald-600 text-white font-bold' : 'text-gray-600 hover:bg-gray-100'}`}
               >
-                {cat}
+                {cat === 'All' ? 'All Jobs' : cat}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="bg-emerald-600 p-6 rounded-2xl shadow-lg text-white space-y-4">
-          <Sparkles className="w-10 h-10 text-yellow-300" />
-          <h3 className="font-bold text-lg leading-tight">Bano Qabil Career AI</h3>
-          <p className="text-emerald-100 text-sm">Let our AI help you find the perfect role based on your coursework.</p>
-          <button 
-            onClick={() => setIsAIModalOpen(true)}
-            className="w-full bg-white text-emerald-600 font-bold py-2 rounded-lg hover:bg-emerald-50 transition-colors shadow-md"
-          >
-            Get Advice
-          </button>
-        </div>
+        {userRole === 'STUDENT' && (
+          <div className="bg-gray-900 p-6 rounded-3xl shadow-lg text-white space-y-4">
+            <FileText className="w-10 h-10 text-emerald-400" />
+            <h3 className="font-bold text-lg leading-tight">My Digital CV</h3>
+            <p className="text-gray-400 text-sm">Your professional CV is ready for employers.</p>
+            <button 
+              onClick={() => currentUserProfile ? handleViewCV(currentUserProfile as Student) : setView(ViewState.PROFILE_SETUP)}
+              className="w-full bg-emerald-600 text-white font-bold py-2 rounded-xl hover:bg-emerald-700 transition-colors shadow-md"
+            >
+              Preview My CV
+            </button>
+          </div>
+        )}
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 space-y-6">
-        {/* Search Bar */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4">
+        <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               type="text" 
               placeholder="Search jobs, companies, or keywords..."
-              className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50"
+              className="w-full pl-12 pr-4 py-4 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="relative min-w-[150px]">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <select className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50 appearance-none text-gray-600">
-              <option>Pakistan</option>
-              <option>Karachi</option>
-              <option>Lahore</option>
-              <option>Islamabad</option>
-            </select>
-          </div>
-          <button className="bg-emerald-600 text-white px-8 py-2 rounded-xl font-bold hover:bg-emerald-700 transition-colors">
+          <button className="bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all shadow-lg">
             Search
           </button>
         </div>
 
-        {/* Job Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filteredJobs.length > 0 ? (
-            filteredJobs.map(job => (
-              <JobCard key={job.id} job={job} onClick={handleJobClick} />
-            ))
-          ) : (
-            <div className="col-span-full py-20 text-center text-gray-500 bg-white rounded-2xl border border-dashed border-gray-300">
-              No jobs found matching your criteria.
-            </div>
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredJobs.map(job => (
+            <JobCard key={job.id} job={job} onClick={handleJobClick} />
+          ))}
         </div>
       </main>
     </div>
@@ -118,60 +209,34 @@ export default function App() {
 
   const renderJobDetails = () => (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      <button 
-        onClick={() => setView(ViewState.HOME)}
-        className="flex items-center gap-2 text-emerald-600 font-semibold hover:underline"
-      >
-        <ChevronRight size={20} className="rotate-180" /> Back to Listings
+      <button onClick={() => setView(ViewState.HOME)} className="flex items-center gap-2 text-emerald-600 font-black hover:underline group">
+        <ChevronRight size={20} className="rotate-180 group-hover:-translate-x-1 transition-transform" /> Back
       </button>
-
       {selectedJob && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="h-32 bg-emerald-600 relative">
-            <img 
-              src={selectedJob.logo} 
-              alt={selectedJob.company} 
-              className="absolute -bottom-6 left-8 w-24 h-24 rounded-2xl border-4 border-white object-cover shadow-lg"
-            />
+        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="h-40 bg-emerald-600 relative">
+            <img src={selectedJob.logo} className="absolute -bottom-10 left-10 w-32 h-32 rounded-3xl border-8 border-white object-cover shadow-2xl" />
           </div>
-          <div className="pt-12 p-8 space-y-6">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+          <div className="pt-16 p-10 space-y-8">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{selectedJob.title}</h1>
-                <p className="text-lg text-emerald-600 font-medium">{selectedJob.company}</p>
+                <h1 className="text-4xl font-black text-gray-900">{selectedJob.title}</h1>
+                <p className="text-xl text-emerald-600 font-bold">{selectedJob.company}</p>
               </div>
-              <button className="bg-emerald-600 text-white px-10 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-shadow shadow-lg">
-                Apply Now
+              <button 
+                onClick={() => handleApply(selectedJob)}
+                className="bg-emerald-600 text-white px-12 py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all shadow-xl"
+              >
+                Apply for Internship
               </button>
             </div>
-
-            <div className="flex flex-wrap gap-4 py-4 border-y border-gray-50">
-              <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-4 py-2 rounded-lg">
-                <MapPin size={18} /> {selectedJob.location}
-              </div>
-              <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-4 py-2 rounded-lg">
-                <Briefcase size={18} /> {selectedJob.type}
-              </div>
-              <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-4 py-2 rounded-lg">
-                <DollarSign size={18} className="hidden" /> {selectedJob.salary}
-              </div>
+            <div className="flex flex-wrap gap-4 py-6 border-y border-gray-100">
+              <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-5 py-3 rounded-2xl text-sm font-bold border border-gray-100"><MapPin size={20} /> {selectedJob.location}</div>
+              <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-5 py-3 rounded-2xl text-sm font-bold border border-gray-100"><Briefcase size={20} /> {selectedJob.type}</div>
             </div>
-
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold">About the Role</h2>
-              <p className="text-gray-600 leading-relaxed">{selectedJob.description}</p>
-            </div>
-
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold">Requirements</h2>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {selectedJob.requirements.map((req, i) => (
-                  <li key={i} className="flex items-center gap-2 text-gray-600">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                    {req}
-                  </li>
-                ))}
-              </ul>
+            <div className="space-y-6 text-gray-600 leading-relaxed">
+              <h2 className="text-2xl font-black text-gray-900">About the Opportunity</h2>
+              <p>{selectedJob.description}</p>
             </div>
           </div>
         </div>
@@ -180,90 +245,53 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-100 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView(ViewState.HOME)}>
-            <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-black text-xl">BQ</div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold leading-none text-emerald-600">Bano Qabil</h1>
-              <span className="text-xs text-gray-400 font-medium tracking-widest uppercase">Job Hub</span>
-            </div>
-          </div>
+    <div className="min-h-screen flex flex-col bg-gray-50 font-['Inter']">
+      {toast && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl z-[100] flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
+          <CheckCircle2 className="text-emerald-400" />
+          <span className="font-bold">{toast}</span>
+        </div>
+      )}
 
-          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600">
-            <button 
-              onClick={() => setView(ViewState.HOME)} 
-              className={`hover:text-emerald-600 transition-colors ${view === ViewState.HOME ? 'text-emerald-600' : ''}`}
-            >
-              Jobs
-            </button>
-            <button className="hover:text-emerald-600 transition-colors">Training</button>
-            <button className="hover:text-emerald-600 transition-colors">Resources</button>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button className="p-2 text-gray-400 hover:text-emerald-600 transition-colors">
-              <Bell size={20} />
-            </button>
-            <div className="h-8 w-[1px] bg-gray-100 hidden sm:block" />
-            <div className="flex items-center gap-3 pl-2">
-              <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden border border-gray-100">
-                <img src="https://picsum.photos/seed/user/100/100" alt="Avatar" />
+      {isLoggedIn && view !== ViewState.PROFILE_SETUP && (
+        <nav className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm print:hidden">
+          <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-20">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView(userRole === 'COMPANY' ? ViewState.COMPANY_PORTAL : ViewState.HOME)}>
+              <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl">BQ</div>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-black text-emerald-600">Bano Qabil</h1>
+                <span className="text-[10px] text-gray-400 font-black tracking-widest uppercase">Portal</span>
               </div>
-              <span className="text-sm font-bold text-gray-700 hidden sm:block">Ali Ahmed</span>
+            </div>
+
+            <div className="hidden md:flex items-center gap-10 text-sm font-bold text-gray-500">
+              {(userRole === 'STUDENT' || userRole === 'ADMIN') && (
+                <button onClick={() => setView(ViewState.HOME)} className={`flex items-center gap-2 ${view === ViewState.HOME ? 'text-emerald-600' : ''}`}>
+                  <Briefcase size={20} /> Jobs
+                </button>
+              )}
+              {(userRole === 'COMPANY' || userRole === 'ADMIN') && (
+                <button onClick={() => setView(ViewState.COMPANY_PORTAL)} className={`flex items-center gap-2 ${view === ViewState.COMPANY_PORTAL ? 'text-emerald-600' : ''}`}>
+                  <Users size={20} /> Talent Hub
+                </button>
+              )}
+              {userRole === 'ADMIN' && (
+                <button onClick={() => setView(ViewState.ADMIN)} className={`flex items-center gap-2 ${view === ViewState.ADMIN ? 'text-emerald-600' : ''}`}>
+                  <Settings size={20} /> Admin Panel
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-6">
+              <button onClick={handleLogout} className="text-xs font-black uppercase text-gray-400 hover:text-red-600">
+                <LogOut size={18} className="inline mr-1" /> Sign Out
+              </button>
             </div>
           </div>
-        </div>
-      </nav>
-
-      {/* Main Area */}
-      <div className="flex-1">
-        {view === ViewState.HOME ? renderHome() : renderJobDetails()}
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-100 py-12">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center text-white font-black">BQ</div>
-              <h2 className="font-bold text-gray-900">Bano Qabil</h2>
-            </div>
-            <p className="text-sm text-gray-500">Connecting Bano Qabil graduates with top tier industry opportunities across Pakistan.</p>
-          </div>
-          <div>
-            <h4 className="font-bold mb-4">For Candidates</h4>
-            <ul className="text-sm text-gray-500 space-y-2">
-              <li className="hover:text-emerald-600 cursor-pointer">Browse Jobs</li>
-              <li className="hover:text-emerald-600 cursor-pointer">Career Advice</li>
-              <li className="hover:text-emerald-600 cursor-pointer">Bano Qabil Courses</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold mb-4">For Employers</h4>
-            <ul className="text-sm text-gray-500 space-y-2">
-              <li className="hover:text-emerald-600 cursor-pointer">Post a Job</li>
-              <li className="hover:text-emerald-600 cursor-pointer">Hiring Solutions</li>
-              <li className="hover:text-emerald-600 cursor-pointer">Pricing</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold mb-4">Newsletter</h4>
-            <p className="text-sm text-gray-500 mb-4">Get the latest job updates delivered.</p>
-            <div className="flex gap-2">
-              <input type="email" placeholder="Email" className="bg-gray-50 border rounded-lg px-3 py-2 text-sm flex-1 outline-none focus:ring-1 focus:ring-emerald-500" />
-              <button className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Join</button>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-gray-50 text-center text-xs text-gray-400">
-          © {new Date().getFullYear()} Bano Qabil Job Hub. All rights reserved.
-        </div>
-      </footer>
-
-      {isAIModalOpen && <AIModal onClose={() => setIsAIModalOpen(false)} userSkills={userSkills} />}
+        </nav>
+      )}
+      <div className="flex-1">{renderContent()}</div>
+      {isAIModalOpen && <AIModal onClose={() => setIsAIModalOpen(false)} userSkills={currentUserProfile && 'skills' in currentUserProfile ? currentUserProfile.skills : []} />}
     </div>
   );
 }
