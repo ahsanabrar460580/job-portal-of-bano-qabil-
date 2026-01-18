@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Search, MapPin, Filter, User, Bell, LayoutDashboard, Briefcase, Sparkles, LogOut, ChevronRight, DollarSign, Settings, Building2, Users, FileText, CheckCircle2 } from 'lucide-react';
+import { Search, MapPin, Filter, User, Bell, LayoutDashboard, Briefcase, Sparkles, LogOut, ChevronRight, DollarSign, Settings, Building2, Users, FileText, CheckCircle2, Building } from 'lucide-react';
 import { MOCK_JOBS, JOB_CATEGORIES, MOCK_STUDENTS, MOCK_COMPANIES } from './constants';
 import { Job, ViewState, Student, Company, UserRole, Interaction } from './types';
 import { JobCard } from './components/JobCard';
@@ -10,6 +10,7 @@ import { LoginPage } from './components/LoginPage';
 import { StudentDirectory } from './components/StudentDirectory';
 import { StudentProfileForm, CompanyProfileForm } from './components/ProfileSetupForms';
 import { StudentCV } from './components/StudentCV';
+import { CompanyCard } from './components/CompanyCard';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -179,30 +180,73 @@ export default function App() {
             </button>
           </div>
         )}
-      </aside>
 
-      <main className="flex-1 space-y-6">
-        <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search jobs, companies, or keywords..."
-              className="w-full pl-12 pr-4 py-4 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50 transition-all"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <button className="bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all shadow-lg">
-            Search
+        <div className="bg-emerald-600 p-6 rounded-3xl shadow-lg text-white space-y-4">
+          <Sparkles className="w-10 h-10 text-yellow-300" />
+          <h3 className="font-bold text-lg leading-tight">Bano Qabil AI</h3>
+          <p className="text-emerald-100 text-sm">Let our AI counselor guide your career.</p>
+          <button onClick={() => setIsAIModalOpen(true)} className="w-full bg-white text-emerald-600 font-bold py-2 rounded-xl hover:bg-emerald-50 transition-colors shadow-md">
+            Ask AI Assistant
           </button>
         </div>
+      </aside>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredJobs.map(job => (
-            <JobCard key={job.id} job={job} onClick={handleJobClick} />
-          ))}
-        </div>
+      <main className="flex-1 space-y-10">
+        {/* Partner Companies Section */}
+        <section className="space-y-4">
+          <div className="flex justify-between items-end">
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 leading-none mb-1">Partner Companies</h2>
+              <p className="text-gray-500 text-sm">Top employers hiring Bano Qabil talent.</p>
+            </div>
+            <div className="flex gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">{companies.length} active partners</span>
+            </div>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+            {companies.map(company => (
+              <CompanyCard key={company.id} company={company} />
+            ))}
+            {companies.length === 0 && (
+              <div className="w-full py-10 bg-white border border-dashed rounded-3xl flex flex-col items-center justify-center text-gray-400">
+                <Building size={32} className="mb-2 opacity-20" />
+                <p className="text-xs">No partner companies registered yet.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Search & Jobs Section */}
+        <section className="space-y-6">
+          <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search jobs, roles, or companies..."
+                className="w-full pl-12 pr-4 py-4 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50 transition-all font-medium"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <button className="bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all shadow-lg">
+              Search Jobs
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {filteredJobs.length > 0 ? (
+              filteredJobs.map(job => (
+                <JobCard key={job.id} job={job} onClick={handleJobClick} />
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed text-gray-400">
+                No jobs found matching your criteria.
+              </div>
+            )}
+          </div>
+        </section>
       </main>
     </div>
   );
@@ -210,7 +254,7 @@ export default function App() {
   const renderJobDetails = () => (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       <button onClick={() => setView(ViewState.HOME)} className="flex items-center gap-2 text-emerald-600 font-black hover:underline group">
-        <ChevronRight size={20} className="rotate-180 group-hover:-translate-x-1 transition-transform" /> Back
+        <ChevronRight size={20} className="rotate-180 group-hover:-translate-x-1 transition-transform" /> Back to Listings
       </button>
       {selectedJob && (
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
@@ -227,16 +271,28 @@ export default function App() {
                 onClick={() => handleApply(selectedJob)}
                 className="bg-emerald-600 text-white px-12 py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all shadow-xl"
               >
-                Apply for Internship
+                Apply Now
               </button>
             </div>
             <div className="flex flex-wrap gap-4 py-6 border-y border-gray-100">
               <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-5 py-3 rounded-2xl text-sm font-bold border border-gray-100"><MapPin size={20} /> {selectedJob.location}</div>
               <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-5 py-3 rounded-2xl text-sm font-bold border border-gray-100"><Briefcase size={20} /> {selectedJob.type}</div>
+              <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-5 py-3 rounded-2xl text-sm font-bold border border-gray-100"><DollarSign size={20} /> {selectedJob.salary}</div>
             </div>
             <div className="space-y-6 text-gray-600 leading-relaxed">
-              <h2 className="text-2xl font-black text-gray-900">About the Opportunity</h2>
+              <h2 className="text-2xl font-black text-gray-900">Job Description</h2>
               <p>{selectedJob.description}</p>
+              <div className="space-y-4 mt-8">
+                <h3 className="text-xl font-bold text-gray-900">Requirements</h3>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {selectedJob.requirements.map((req, i) => (
+                    <li key={i} className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl border">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="text-sm font-medium">{req}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -246,6 +302,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 font-['Inter']">
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+
       {toast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl z-[100] flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
           <CheckCircle2 className="text-emerald-400" />
@@ -266,26 +327,29 @@ export default function App() {
 
             <div className="hidden md:flex items-center gap-10 text-sm font-bold text-gray-500">
               {(userRole === 'STUDENT' || userRole === 'ADMIN') && (
-                <button onClick={() => setView(ViewState.HOME)} className={`flex items-center gap-2 ${view === ViewState.HOME ? 'text-emerald-600' : ''}`}>
+                <button onClick={() => setView(ViewState.HOME)} className={`flex items-center gap-2 hover:text-emerald-600 transition-colors ${view === ViewState.HOME ? 'text-emerald-600' : ''}`}>
                   <Briefcase size={20} /> Jobs
                 </button>
               )}
               {(userRole === 'COMPANY' || userRole === 'ADMIN') && (
-                <button onClick={() => setView(ViewState.COMPANY_PORTAL)} className={`flex items-center gap-2 ${view === ViewState.COMPANY_PORTAL ? 'text-emerald-600' : ''}`}>
+                <button onClick={() => setView(ViewState.COMPANY_PORTAL)} className={`flex items-center gap-2 hover:text-emerald-600 transition-colors ${view === ViewState.COMPANY_PORTAL ? 'text-emerald-600' : ''}`}>
                   <Users size={20} /> Talent Hub
                 </button>
               )}
               {userRole === 'ADMIN' && (
-                <button onClick={() => setView(ViewState.ADMIN)} className={`flex items-center gap-2 ${view === ViewState.ADMIN ? 'text-emerald-600' : ''}`}>
+                <button onClick={() => setView(ViewState.ADMIN)} className={`flex items-center gap-2 hover:text-emerald-600 transition-colors ${view === ViewState.ADMIN ? 'text-emerald-600' : ''}`}>
                   <Settings size={20} /> Admin Panel
                 </button>
               )}
             </div>
 
             <div className="flex items-center gap-6">
-              <button onClick={handleLogout} className="text-xs font-black uppercase text-gray-400 hover:text-red-600">
-                <LogOut size={18} className="inline mr-1" /> Sign Out
+              <button onClick={handleLogout} className="text-xs font-black uppercase text-gray-400 hover:text-red-600 transition-colors flex items-center gap-2">
+                <LogOut size={18} /> Sign Out
               </button>
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 font-black text-xs border border-emerald-200">
+                {userRole[0]}
+              </div>
             </div>
           </div>
         </nav>
